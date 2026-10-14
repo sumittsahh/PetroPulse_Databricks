@@ -1,0 +1,55 @@
+name: Validate PetroPulse code
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install nbformat
+        run: pip install nbformat
+
+      - name: Validate notebook syntax
+        run: |
+          python - <<'EOF'
+          import nbformat
+          import ast
+          import glob
+          import sys
+
+          failed = False
+          for path in glob.glob("**/*.ipynb", recursive=True):
+              nb = nbformat.read(path, as_version=4)
+              for i, cell in enumerate(nb.cells):
+                  if cell.cell_type == "code":
+                      source = cell.source
+                      if source.strip().startswith("%sql") or source.strip().startswith("%pip"):
+                          continue
+                      try:
+                          ast.parse(source)
+                      except SyntaxError as e:
+                          print(f"Syntax error in {path}, cell {i}: {e}")
+                          failed = True
+
+          for path in glob.glob("**/*.py", recursive=True):
+              with open(path) as f:
+                  source = f.read()
+              try:
+                  ast.parse(source)
+              except SyntaxError as e:
+                  print(f"Syntax error in {path}: {e}")
+                  failed = True
+
+          sys.exit(1 if failed else 0)
+          EOF
