@@ -6,7 +6,6 @@ from databricks import sql
 import os
 
 st.set_page_config(page_title="PetroPulse Ops", layout="wide")
-this is not valid python(((
 @st.cache_resource
 def get_warehouse_http_path():
     w = WorkspaceClient(
